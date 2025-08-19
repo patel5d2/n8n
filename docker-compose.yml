@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    platform: linux/arm64
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_PORT=5678
+      - N8N_HOST=n8n
+      - WEBHOOK_TUNNEL_URL=http://n8n:5678
+      - N8N_BINARY_DATA_MODE=filesystem
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel --no-autoupdate run --token <YOUR_TUNNEL_TOKEN>
+    depends_on:
+      - n8n
+
+volumes:
+  n8n_data:

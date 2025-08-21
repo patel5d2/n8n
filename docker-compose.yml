@@ -1,26 +1,44 @@
-version: "3.8"
+version: '3.8'
 
 services:
   n8n:
-    image: docker.n8n.io/n8nio/n8n:latest
-    platform: linux/arm64
-    restart: always
-    ports:
-      - "5678:5678"
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
     environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=changeme123
+      - N8N_HOST=localhost
       - N8N_PORT=5678
-      - N8N_HOST=n8n
-      - WEBHOOK_TUNNEL_URL=http://n8n:5678
-      - N8N_BINARY_DATA_MODE=filesystem
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=https://your-domain.com
+      - GENERIC_TIMEZONE=UTC
+      - N8N_LOG_LEVEL=info
     volumes:
       - n8n_data:/home/node/.n8n
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "5678:5678"
+    networks:
+      - n8n_network
 
   cloudflared:
     image: cloudflare/cloudflared:latest
-    restart: always
-    command: tunnel --no-autoupdate run --token <YOUR_TUNNEL_TOKEN>
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=<YOUR_TUNNEL_TOKEN>
+    networks:
+      - n8n_network
     depends_on:
       - n8n
 
 volumes:
   n8n_data:
+    driver: local
+
+networks:
+  n8n_network:
+    driver: bridge

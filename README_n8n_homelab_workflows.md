@@ -131,10 +131,3 @@ Below are step-by-step notes and credential recommendations for each workflow.
 - **Scaling**: For multiple VMs/containers, you can add a `SplitInBatches` node or create a "List" function to produce items and let the flow iterate.
 - **Security**: Keep API tokens and SSH keys secure. Use environment variables or n8n credentials rather than hardcoding secrets in nodes.
 
----
-
-If you want, I can:
-- Adjust any of the JSON templates to support multiple items (SplitInBatches).
-- Create a ZIP with all workflows (I already saved them here).
-- Walk through importing and wiring one of them live (I can provide step-by-step commands you can follow).
-

@@ -1,0 +1,103 @@
+{
+  "name": "Vaultwarden - Backup (SSH + upload placeholder)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "cronExpression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Cron - Vaultwarden Backup",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=sqlite3 /data/vaultwarden/db.sqlite3 \".backup '/tmp/vw_backup_$(date +%F).sqlite'\" && tar -czf /tmp/vw_backup_$(date +%F).tar.gz /tmp/vw_backup_$(date +%F).sqlite"
+      },
+      "name": "Create DB Backup",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{ $json.uploadUrl }}",
+        "options": {},
+        "method": "PUT",
+        "body": "={{$binary.data}}"
+      },
+      "name": "Upload Backup (SFTP presigned or S3)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Quick Setup Guide\n\n1. Add SSH credentials for your Vaultwarden host.\n2. Add backup destination credentials (Google Drive/S3).\n3. Update paths for backup files.\n4. Set Cron schedule for daily backups.",
+        "color": "brown"
+      },
+      "name": "Annotation_brown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "How To Use\n\n- Cron triggers daily backup\n- SSH node exports Vaultwarden DB\n- File encrypted (optional)\n- Upload to cloud storage\n- Discord/Email sends success/failure report.",
+        "color": "green"
+      },
+      "name": "Annotation_green",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Cron - Vaultwarden Backup": {
+      "main": [
+        [
+          {
+            "node": "Create DB Backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create DB Backup": {
+      "main": [
+        [
+          {
+            "node": "Upload Backup (SFTP presigned or S3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "description": "Runs an SSH command to create a backup of the Vaultwarden SQLite DB and then uploads it. Replace SSH credentials in the SSH node; set uploadUrl via Set node or Credentials (S3/Presigned). You may adapt to use rclone or SFTP nodes as preferred.",
+  "createdAt": "2025-09-20T15:35:28.349434Z"
+}

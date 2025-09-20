@@ -1,0 +1,153 @@
+{
+  "name": "Pi-hole - DNS Health Watchdog",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "cronExpression": "*/10 * * * *"
+            }
+          ]
+        }
+      },
+      "name": "Cron - DNS Health",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://{{ $json.piholeHost }}/admin/api.php?summaryRaw",
+        "options": {},
+        "method": "GET"
+      },
+      "name": "Pi-hole Query Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\nconst summary = items[0].json;\nconst blocked = summary && summary.ads_blocked_today ? parseInt(summary.ads_blocked_today) : 0;\nreturn [{ json: { blocked } }];\n"
+      },
+      "name": "Check Spike",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [],
+          "number": [
+            {
+              "value1": "={{$json[\"blocked\"]}}",
+              "operation": "greaterThan",
+              "value2": 1000
+            }
+          ],
+          "string": []
+        }
+      },
+      "name": "Spike?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{ $json.discordWebhookUrl }}",
+        "options": {},
+        "method": "POST",
+        "body": "{\"content\":\"Pi-hole blocked count high: {{$json.blocked}}\"}"
+      },
+      "name": "Notify Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Quick Setup Guide\n\n1. Add Pi-hole API credentials.\n2. Enter your Pi-hole URL.\n3. Update Discord webhook.",
+        "color": "brown"
+      },
+      "name": "Annotation_brown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Workflow Flow\n\n- Cron queries Pi-hole stats\n- Extracts blocked request counts\n- IF node checks for anomalies\n- Discord sends alert.",
+        "color": "green"
+      },
+      "name": "Annotation_green",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Cron - DNS Health": {
+      "main": [
+        [
+          {
+            "node": "Pi-hole Query Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pi-hole Query Stats": {
+      "main": [
+        [
+          {
+            "node": "Check Spike",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Spike": {
+      "main": [
+        [
+          {
+            "node": "Spike?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spike?": {
+      "main": []
+    }
+  },
+  "active": false,
+  "description": "Polls Pi-hole's summaryRaw endpoint and alerts on a spike in blocked domains. Adjust threshold as needed.",
+  "createdAt": "2025-09-20T15:35:28.349967Z"
+}

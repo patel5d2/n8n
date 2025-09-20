@@ -1,0 +1,104 @@
+{
+  "name": "Pi-hole - Blocklist Sync (weekly)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "cronExpression": "0 4 * * 0"
+            }
+          ]
+        }
+      },
+      "name": "Cron - Pi-hole Blocklist Sync",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{ $json.blocklistUrl }}",
+        "options": {},
+        "method": "GET"
+      },
+      "name": "Download blocklist",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://{{ $json.piholeHost }}/admin/api.php?list=black&add={{ $json.blocklistContent }}",
+        "options": {},
+        "method": "GET"
+      },
+      "name": "Push to Pi-hole",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Quick Setup Guide\n\n1. Add Pi-hole API key.\n2. Enter your Pi-hole admin URL.\n3. Add new blocklist sources (GitHub/raw URLs).\n4. Schedule weekly cron.",
+        "color": "brown"
+      },
+      "name": "Annotation_brown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Workflow Flow\n\n- Cron triggers weekly\n- HTTP fetches blocklists\n- Pi-hole API updates lists\n- Logs update to Notion/Discord.",
+        "color": "green"
+      },
+      "name": "Annotation_green",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Cron - Pi-hole Blocklist Sync": {
+      "main": [
+        [
+          {
+            "node": "Download blocklist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download blocklist": {
+      "main": [
+        [
+          {
+            "node": "Push to Pi-hole",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "description": "Downloads a blocklist and pushes it to Pi-hole via its admin API. Replace blocklistUrl and piholeHost. You may prefer using Pi-hole's gravity list approach; this is a simple template.",
+  "createdAt": "2025-09-20T15:35:28.349769Z"
+}

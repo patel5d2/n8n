@@ -1,0 +1,152 @@
+{
+  "name": "Portainer - Container Watchdog (single container template)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "cronExpression": "*/2 * * * *"
+            }
+          ]
+        }
+      },
+      "name": "Cron - Portainer Container Check",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $json.portainerHost }}/api/endpoints/{{ $json.endpointId }}/docker/containers/{{ $json.containerId }}/json",
+        "options": {},
+        "method": "GET"
+      },
+      "name": "Get Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\nconst r = items[0].json;\nconst state = r && r.State && r.State.Status ? r.State.Status : null;\nreturn [{ json: { state } }];\n"
+      },
+      "name": "Parse Container",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [],
+          "number": [],
+          "string": [
+            {
+              "value1": "={{$json[\"state\"]}}",
+              "operation": "notEqual",
+              "value2": "running"
+            }
+          ]
+        }
+      },
+      "name": "Container running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $json.portainerHost }}/api/endpoints/{{ $json.endpointId }}/docker/containers/{{ $json.containerId }}/restart",
+        "options": {},
+        "method": "POST"
+      },
+      "name": "Restart Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Quick Setup Guide\n\n1. Add Portainer API credentials in n8n (Settings \u2192 Credentials \u2192 HTTP).\n2. Enter Portainer host URL, endpoint ID, and container ID.\n3. Update Discord webhook for alerts.\n4. Activate workflow.",
+        "color": "brown"
+      },
+      "name": "Annotation_brown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "How To Use This Workflow\n\n- Runs on a Cron schedule\n- Checks if container is running\n- If stopped, workflow restarts it\n- Sends alert to Discord.",
+        "color": "green"
+      },
+      "name": "Annotation_green",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Cron - Portainer Container Check": {
+      "main": [
+        [
+          {
+            "node": "Get Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Container": {
+      "main": [
+        [
+          {
+            "node": "Parse Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Container": {
+      "main": [
+        [
+          {
+            "node": "Container running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Container running?": {
+      "main": []
+    }
+  },
+  "active": false,
+  "description": "Cron checks a single Portainer-managed container and restarts it if not running. Replace placeholders (portainerHost, endpointId, containerId) and attach Portainer API key via HTTP Request credentials in n8n.",
+  "createdAt": "2025-09-20T15:35:28.349109Z"
+}

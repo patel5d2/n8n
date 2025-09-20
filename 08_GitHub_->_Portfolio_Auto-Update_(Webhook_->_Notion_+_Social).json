@@ -1,0 +1,119 @@
+{
+  "name": "GitHub -> Portfolio Auto-Update (Webhook -> Notion + Social)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "webhook-github-portfolio",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "name": "GitHub Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\nconst body = items[0].json;\nconst repo = body.repository ? body.repository.full_name : '';\nconst commitMsg = body.head_commit ? body.head_commit.message : '';\nconst url = body.repository ? body.repository.html_url : '';\nreturn [{ json: { repo, commitMsg, url } }];\n"
+      },
+      "name": "Extract Commit Info",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{ $json.notionApiUrl }}/pages/{{ $json.notionPageId }}",
+        "options": {},
+        "method": "PATCH",
+        "body": "{\"properties\": {\"Last Updated\": {\"date\": {\"start\": \"={{new Date().toISOString()}}\"}}, \"Latest Commit\": {\"rich_text\": [{\"text\": {\"content\": \"={{$json.commitMsg}}\"}}]}}}"
+      },
+      "name": "Update Notion (HTTP)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{ $json.socialApiUrl }}",
+        "options": {},
+        "method": "POST",
+        "body": "{\"text\":\"\ud83d\ude80 Updated {{$json.repo}} - {{$json.commitMsg}} {{$json.url}}\"}"
+      },
+      "name": "Post to Buffer/Twitter (placeholder)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Quick Setup Guide\n\n1. Add GitHub webhook for push events (pointing to this n8n workflow URL).\n2. Add Notion credentials + DB ID.\n3. Add Twitter + LinkedIn credentials (or Buffer API).\n4. Update messages/templates in nodes.",
+        "color": "brown"
+      },
+      "name": "Annotation_brown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "How To Use\n\n- On Git push, webhook triggers\n- Commit info parsed\n- Notion DB updated\n- Tweet + LinkedIn post published.",
+        "color": "green"
+      },
+      "name": "Annotation_green",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "GitHub Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Commit Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Commit Info": {
+      "main": [
+        [
+          {
+            "node": "Update Notion (HTTP)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post to Buffer/Twitter (placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "description": "Receives GitHub push webhook, updates a Notion page via Notion's API, and posts to social using Buffer/Twitter API. Configure GitHub webhook to point to your n8n webhook URL and create Notion integration token; set social API endpoint and credentials (or Buffer).",
+  "createdAt": "2025-09-20T15:35:28.350112Z"
+}

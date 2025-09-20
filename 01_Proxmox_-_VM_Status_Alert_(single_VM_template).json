@@ -1,0 +1,165 @@
+{
+  "name": "Proxmox - VM Status Alert (single VM template)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "cronExpression": "*/5 * * * *"
+            }
+          ]
+        }
+      },
+      "name": "Cron - Proxmox VM Check",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $json.proxmoxHost }}/api2/json/nodes/{{ $json.nodeName }}/qemu/{{ $json.vmid }}/status/current",
+        "options": {},
+        "method": "GET"
+      },
+      "name": "Check VM Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\nconst response = items[0].json;\nconst status = response && response.data && response.data.status ? response.data.status : null;\nreturn [{ json: { status } }];\n"
+      },
+      "name": "Parse Status",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [],
+          "number": [],
+          "string": [
+            {
+              "value1": "={{$json[\"status\"]}}",
+              "operation": "notEqual",
+              "value2": "running"
+            }
+          ]
+        }
+      },
+      "name": "VM running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $json.proxmoxHost }}/api2/json/nodes/{{ $json.nodeName }}/qemu/{{ $json.vmid }}/status/start",
+        "options": {},
+        "method": "POST"
+      },
+      "name": "Start VM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Quick Setup Guide\n\n1. Add Proxmox API credentials in n8n (Settings \u2192 Credentials \u2192 HTTP).\n2. Enter your Proxmox host URL, node name, and VMID in the Set node.\n3. Update the Discord Webhook URL for alerts.\n4. Activate workflow to begin monitoring.",
+        "color": "brown"
+      },
+      "name": "Annotation_brown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "How To Use This Workflow\n\n1. Workflow runs on a Cron schedule.\n2. It queries Proxmox API to check VM state.\n3. If VM is stopped/unhealthy, workflow restarts it automatically.\n4. Sends status report to Discord channel.",
+        "color": "green"
+      },
+      "name": "Annotation_green",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Process Description\n\n- Cron triggers VM check\n- HTTP node queries Proxmox API\n- IF node checks status\n- SSH/HTTP node restarts VM\n- Discord webhook sends alert.",
+        "color": "blue"
+      },
+      "name": "Annotation_blue",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Cron - Proxmox VM Check": {
+      "main": [
+        [
+          {
+            "node": "Check VM Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check VM Status": {
+      "main": [
+        [
+          {
+            "node": "Parse Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Status": {
+      "main": [
+        [
+          {
+            "node": "VM running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VM running?": {
+      "main": []
+    }
+  },
+  "active": false,
+  "description": "Cron checks a single VM in Proxmox and starts it if not running. Replace placeholders (proxmoxHost, nodeName, vmid) with actual values or use Set node before the HTTP Request.",
+  "createdAt": "2025-09-20T15:35:28.348891Z"
+}

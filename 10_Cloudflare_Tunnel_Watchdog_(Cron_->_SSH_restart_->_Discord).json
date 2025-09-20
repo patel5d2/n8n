@@ -1,0 +1,155 @@
+{
+  "name": "Cloudflare Tunnel Watchdog (Cron -> SSH restart -> Discord)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "cronExpression": "*/5 * * * *"
+            }
+          ]
+        }
+      },
+      "name": "Cron - Tunnel Watchdog",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.tunnelUrl }}",
+        "options": {
+          "rejectUnauthorized": false
+        },
+        "method": "GET"
+      },
+      "name": "Check Tunnel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [],
+          "number": [],
+          "string": [
+            {
+              "value1": "={{$json[\"statusCode\"]}}",
+              "operation": "notEqual",
+              "value2": 200
+            }
+          ]
+        }
+      },
+      "name": "Tunnel OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "sudo systemctl restart cloudflared"
+      },
+      "name": "Restart cloudflared",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{ $json.discordWebhookUrl }}",
+        "options": {},
+        "method": "POST",
+        "body": "{\"content\":\"\u26a0\ufe0f Cloudflare Tunnel was down and restart attempted on {{ $json.host }} at {{ new Date().toISOString() }}\"}"
+      },
+      "name": "Notify Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Quick Setup Guide\n\n1. Add Cron trigger (5-10 min).\n2. Enter your tunnel URL.\n3. Add SSH credentials to restart Cloudflared.\n4. Add Discord webhook for alerts.",
+        "color": "brown"
+      },
+      "name": "Annotation_brown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Flow Description\n\n- Cron triggers health check\n- HTTP node tests service URL\n- IF node detects downtime\n- SSH restarts cloudflared\n- Discord alert sent.",
+        "color": "green"
+      },
+      "name": "Annotation_green",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Cron - Tunnel Watchdog": {
+      "main": [
+        [
+          {
+            "node": "Check Tunnel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Tunnel": {
+      "main": [
+        [
+          {
+            "node": "Tunnel OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tunnel OK?": {
+      "main": []
+    },
+    "Restart cloudflared": {
+      "main": [
+        [
+          {
+            "node": "Notify Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "description": "Checks your tunnel endpoint and attempts an SSH restart if it's down; sends a Discord webhook note after attempting restart. Replace tunnelUrl, host, and set SSH credentials in the SSH node.",
+  "createdAt": "2025-09-20T15:35:28.350521Z"
+}

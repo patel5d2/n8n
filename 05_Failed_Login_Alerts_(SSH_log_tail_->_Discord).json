@@ -1,0 +1,151 @@
+{
+  "name": "Failed Login Alerts (SSH log tail -> Discord)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "cronExpression": "*/5 * * * *"
+            }
+          ]
+        }
+      },
+      "name": "Cron - Check Failed Logins",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=tail -n 200 /var/log/auth.log || tail -n 200 /var/log/secure"
+      },
+      "name": "Fetch auth log tail",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\nconst out = items[0].json['stdout'] || '';\nconst lines = out.split('\\n').filter(Boolean);\nconst suspicious = lines.filter(l => l.toLowerCase().includes('failed password') || l.toLowerCase().includes('authentication failure'));\nreturn [{ json: { suspiciousCount: suspicious.length, suspiciousLines: suspicious } }];\n"
+      },
+      "name": "Parse Failed Attempts",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [],
+          "number": [
+            {
+              "value1": "={{$json[\"suspiciousCount\"]}}",
+              "operation": "greaterThan",
+              "value2": 0
+            }
+          ],
+          "string": []
+        }
+      },
+      "name": "Any suspicious?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{ $json.discordWebhookUrl }}",
+        "options": {},
+        "method": "POST",
+        "body": "{\"content\":\"Failed login attempts detected: {{$json.suspiciousCount}}\"}"
+      },
+      "name": "Notify Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Setup Guide\n\n1. Add SSH credentials for server.\n2. Update log file path (e.g., /var/log/auth.log).\n3. Configure Discord webhook for alerts.",
+        "color": "brown"
+      },
+      "name": "Annotation_brown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Flow Description\n\n- Cron triggers log tail\n- Regex node checks for failed logins\n- IF node filters repeated attempts\n- Discord webhook sends alert.",
+        "color": "green"
+      },
+      "name": "Annotation_green",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Cron - Check Failed Logins": {
+      "main": [
+        [
+          {
+            "node": "Fetch auth log tail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch auth log tail": {
+      "main": [
+        [
+          {
+            "node": "Parse Failed Attempts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Failed Attempts": {
+      "main": [
+        [
+          {
+            "node": "Any suspicious?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any suspicious?": {
+      "main": []
+    }
+  },
+  "active": false,
+  "description": "Tails auth logs over SSH and sends a Discord notification when failed logins are found. Configure SSH credential and Discord webhook URL in a Set node or environment variable.",
+  "createdAt": "2025-09-20T15:35:28.349644Z"
+}

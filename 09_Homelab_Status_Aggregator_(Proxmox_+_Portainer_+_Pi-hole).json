@@ -1,0 +1,201 @@
+{
+  "name": "Homelab Status Aggregator (Proxmox + Portainer + Pi-hole)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "cronExpression": "*/5 * * * *"
+            }
+          ]
+        }
+      },
+      "name": "Cron - Aggregate Status",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $json.proxmoxHost }}/api2/json/nodes",
+        "options": {},
+        "method": "GET"
+      },
+      "name": "Proxmox Node Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $json.portainerHost }}/api/endpoints/{{ $json.endpointId }}/docker/containers/json",
+        "options": {},
+        "method": "GET"
+      },
+      "name": "Portainer Containers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://{{ $json.piholeHost }}/admin/api.php?summaryRaw",
+        "options": {},
+        "method": "GET"
+      },
+      "name": "Pi-hole Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\nconst proxmox = items[0].json;\nconst portainer = items[1].json;\nconst pihole = items[2].json;\nreturn [{ json: { proxmox, portainer, pihole } }];\n"
+      },
+      "name": "Build Status JSON",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{ $json.storageApiUrl }}/homelab-status",
+        "options": {},
+        "method": "POST",
+        "body": "={{$json}}"
+      },
+      "name": "Save to Glance/Storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Quick Setup Guide\n\n1. Add Proxmox API credentials in n8n (Settings \u2192 Credentials \u2192 HTTP).\n2. Enter your Proxmox host URL, node name, and VMID in the Set node.\n3. Update the Discord Webhook URL for alerts.\n4. Activate workflow to begin monitoring.",
+        "color": "brown"
+      },
+      "name": "Annotation_brown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "How To Use This Workflow\n\n1. Workflow runs on a Cron schedule.\n2. It queries Proxmox API to check VM state.\n3. If VM is stopped/unhealthy, workflow restarts it automatically.\n4. Sends status report to Discord channel.",
+        "color": "green"
+      },
+      "name": "Annotation_green",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Process Description\n\n- Cron triggers VM check\n- HTTP node queries Proxmox API\n- IF node checks status\n- SSH/HTTP node restarts VM\n- Discord webhook sends alert.",
+        "color": "blue"
+      },
+      "name": "Annotation_blue",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Cron - Aggregate Status": {
+      "main": [
+        [
+          {
+            "node": "Proxmox Node Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Portainer Containers",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pi-hole Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proxmox Node Status": {
+      "main": [
+        [
+          {
+            "node": "Build Status JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Portainer Containers": {
+      "main": [
+        [
+          {
+            "node": "Build Status JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pi-hole Stats": {
+      "main": [
+        [
+          {
+            "node": "Build Status JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Status JSON": {
+      "main": [
+        [
+          {
+            "node": "Save to Glance/Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "description": "Polls core services and builds a JSON snapshot then posts it to a storage endpoint or Glance dashboard API. Replace storageApiUrl and hosts. For larger installations use pagination and batching.",
+  "createdAt": "2025-09-20T15:35:28.350319Z"
+}

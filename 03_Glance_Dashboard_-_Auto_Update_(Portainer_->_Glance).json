@@ -1,0 +1,128 @@
+{
+  "name": "Glance Dashboard - Auto Update (Portainer -> Glance)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "cronExpression": "*/10 * * * *"
+            }
+          ]
+        }
+      },
+      "name": "Cron - Glance Update",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $json.portainerHost }}/api/endpoints/{{ $json.endpointId }}/docker/containers/json",
+        "options": {},
+        "method": "GET"
+      },
+      "name": "List Containers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "\nconst containers = items[0].json;\nconst parsed = containers.map(c => ({ name: c.Names ? c.Names[0].replace('/','') : c.Id, state: c.State }));\nreturn [{ json: { glancePayload: parsed } }];\n"
+      },
+      "name": "Build Glance Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{ $json.glanceUrl }}/api/update",
+        "options": {},
+        "method": "POST",
+        "body": "={{$json.glancePayload}}"
+      },
+      "name": "POST to Glance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Quick Setup Guide\n\n1. Add Portainer API credentials in n8n (Settings \u2192 Credentials \u2192 HTTP).\n2. Enter Portainer host URL, endpoint ID, and container ID.\n3. Update Discord webhook for alerts.\n4. Activate workflow.",
+        "color": "brown"
+      },
+      "name": "Annotation_brown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "How To Use This Workflow\n\n- Runs on a Cron schedule\n- Checks if container is running\n- If stopped, workflow restarts it\n- Sends alert to Discord.",
+        "color": "green"
+      },
+      "name": "Annotation_green",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Cron - Glance Update": {
+      "main": [
+        [
+          {
+            "node": "List Containers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Containers": {
+      "main": [
+        [
+          {
+            "node": "Build Glance Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Glance Payload": {
+      "main": [
+        [
+          {
+            "node": "POST to Glance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "description": "Polls Portainer for container list, builds a small payload and POSTs to Glance dashboard API. Replace glanceUrl and portainerHost placeholders. You may need to adapt the POST path to your Glance configuration.",
+  "createdAt": "2025-09-20T15:35:28.349290Z"
+}

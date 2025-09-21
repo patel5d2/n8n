@@ -24,7 +24,7 @@
     {
       "parameters": {
         "command": "sudo ./update.sh",
-        "cwd": "=/home/nginx"
+        "cwd": "=/home/yourudername"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -33,7 +33,7 @@
         -496
       ],
       "id": "bf7571a7-dccc-49cc-94d8-717eac419245",
-      "name": "nginx",
+      "name": "VM1",
       "credentials": {
         "sshPassword": {
           "id": "1E48bpaACpmkikz1",
@@ -44,7 +44,7 @@
     {
       "parameters": {
         "command": "sudo ./update.sh",
-        "cwd": "=/home/bholu"
+        "cwd": "=/home/yourudername"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -53,18 +53,18 @@
         -496
       ],
       "id": "ccf4e965-090d-439a-8216-7cc3ea5482fe",
-      "name": "Vaultwarden",
+      "name": "VM2",
       "credentials": {
         "sshPassword": {
           "id": "9qyJFGKxfSpKJlEl",
-          "name": "SSH Password account 2"
+          "name": "SSH Password account"
         }
       }
     },
     {
       "parameters": {
         "command": "sudo ./update.sh",
-        "cwd": "=/home/ubuntu"
+        "cwd": "=/home/yourudername"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -73,7 +73,7 @@
         -512
       ],
       "id": "61059fe6-8502-4a43-8c27-b5a56c382b1e",
-      "name": "pinhole/n8n",
+      "name": "VM3",
       "credentials": {
         "sshPassword": {
           "id": "1E48bpaACpmkikz1",
